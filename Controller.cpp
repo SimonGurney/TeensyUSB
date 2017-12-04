@@ -58,6 +58,17 @@
 		randomStringBuf[randomStringLength] = '\0';
 		return randomStringBuf;
 	};
+	bool Controller::getLedState(int led)
+	{
+		if(keyboard_leds & led)
+		{
+			return 1;
+		}
+		else
+		{
+			return 0;
+		}
+	};
 	void Controller::initilialiseBase64Buf()
 	{
 		for (int i = 0; i < base64EncodedSize; ++i)
@@ -85,7 +96,7 @@
 		initilialiseFileReadBuf();
 		currentFile.read(fileReadBuf,fileReadBufSize);
 		return fileReadBuf;
-	}
+	};
 	void Controller::rightClick()
 	{
 		Keyboard.set_modifier(MODIFIERKEY_SHIFT);
@@ -121,6 +132,36 @@
 			delay(50);
 		}
 	};
+	void Controller::typeCurrentFile()
+	{
+		while(currentFile.available())
+		{
+			delay(100);
+			Keyboard.print(base64Encode(readCurrentFile()));
+		}
+	};
+	void Controller::waitForKey(int key)
+	{
+		int led = 0;
+		
+		switch(key)
+		{
+			case KEY_NUM_LOCK: led = USB_LED_NUM_LOCK; break;
+			case KEY_SCROLL_LOCK: led = USB_LED_SCROLL_LOCK; break;
+			case KEY_CAPS_LOCK: led = USB_LED_CAPS_LOCK; break;
+			default: error(); break;
+		}
+	while(getLedState(led)) // Turn led off if needed
+		{
+			sendKey(key);
+		}
+		digitalWrite(ledPin, HIGH); // Turn LED on to indicate waiting for input
+		while (!getLedState(led))
+		{
+			delay(50);
+		}
+		digitalWrite(ledPin, LOW); // Turn LED off to indicate continued execution
+	};
 	void WindowsController::goToDesktop()  // Requires sendKey and unSelectObject
 	{
 		Keyboard.set_modifier(MODIFIERKEY_GUI);
@@ -132,7 +173,7 @@
 		Keyboard.send_now();
 		delay(100); // Give it chance to minimise windows
 		sendKey(KEY_RIGHT,1); // Select a random item
-		sendKey(KEY_LEFT,1); // Select a random item
+		sendKey(KEY_LEFT,1); // Select a random item if we can't go right
 		unSelectObject(); // unSelect the random item
 	};
 	void WindowsController::cmdViaShortcut(char *cmd, char *shortcutName) // Requires sendKey and goToDesktop
